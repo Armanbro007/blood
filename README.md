@@ -47,4 +47,8 @@ python3 -m http.server
 
 ## History
 
-I built the first version in 2023 as my first full website, with HTML, CSS, Bootstrap and jQuery. It is kept on the [`v1-2023` branch](https://github.com/Armanbro007/blood/tree/v1-2023). In 2026 I rebuilt it from scratch with a new design and working features.
+| 2023: first version | 2026: rebuild |
+| --- | --- |
+| ![BloodMate in 2023](docs/2023-version.png) | ![BloodMate in 2026](docs/home.png) |
+
+I built the first version in January 2023 as my first full website, with HTML, CSS, Bootstrap and jQuery. Its code and commit history are still in this repository, and the full 2023 site is on the [`v1-2023` branch](https://github.com/Armanbro007/blood/tree/v1-2023). In November 2026 I rebuilt it in the same repository with a new design and working features.
