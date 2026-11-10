@@ -47,4 +47,4 @@ python3 -m http.server
 
 ## History
 
-I built the first version in 2023 as my first full website, with HTML, CSS, Bootstrap and jQuery. It is kept as the `v1-2023` tag. In 2026 I rebuilt it from scratch with a new design and working features.
+I built the first version in 2023 as my first full website, with HTML, CSS, Bootstrap and jQuery. It is kept on the [`v1-2023` branch](https://github.com/Armanbro007/blood/tree/v1-2023). In 2026 I rebuilt it from scratch with a new design and working features.
