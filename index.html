@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BloodMate · Find blood donors in Bangladesh</title>
+  <meta name="description" content="Find blood donors by blood group and district, post urgent blood requests, and track when you can donate again.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="home">
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">Blood donation network · Bangladesh</span>
+        <h1>Find a blood donor <span>near you</span>, fast.</h1>
+        <p class="lead">Search donors by blood group and district, post an urgent request, and know exactly when you can donate again.</p>
+        <form class="search-card" action="find.html">
+          <div class="field"><label for="q-group">Blood group</label><select id="q-group" name="group"></select></div>
+          <div class="field"><label for="q-district">District</label><select id="q-district" name="district"></select></div>
+          <button class="btn btn-primary" type="submit">Search donors</button>
+        </form>
+        <p class="muted" style="margin-top:16px;font-size:.9rem">Want to help? <a href="register.html">Register as a donor</a> in under a minute.</p>
+      </div>
+      <div class="hero-media">
+        <img src="assets/img/donation.webp" alt="A donor giving blood with a needle in their arm" width="1200" height="500">
+        <div class="float-chip b"><span class="badge" style="min-width:34px;height:34px;font-size:.9rem">O-</span><span>Universal red-cell donor</span></div>
+        <div class="float-chip a"><span class="dot"></span><span id="chip-ready">Donors ready now</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="stats reveal" id="stats" aria-label="Live numbers from this demo"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="center reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps, no paperwork</h2>
+        <p class="lead">BloodMate puts patients and willing donors in touch directly.</p>
+      </div>
+      <div class="grid grid-3" style="margin-top:36px">
+        <div class="card reveal"><span class="step-num">1</span><h3>Register as a donor</h3><p class="muted">Add your blood group, district and when you last gave blood. Takes about a minute.</p></div>
+        <div class="card reveal"><span class="step-num">2</span><h3>Get found when it matters</h3><p class="muted">Patients search by group and district. Only donors who are available and eligible show as ready.</p></div>
+        <div class="card reveal"><span class="step-num">3</span><h3>Track your next donation</h3><p class="muted">Your dashboard counts down the roughly four months until you can safely donate again.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--surface);border-block:1px solid var(--line)">
+    <div class="container compat">
+      <div class="reveal">
+        <span class="eyebrow">Compatibility checker</span>
+        <h2>Who can give to whom?</h2>
+        <p class="muted">Pick a blood group to see which groups it can receive red cells from, and give to.</p>
+        <div class="groups" id="compat-groups" role="radiogroup" aria-label="Blood group"></div>
+      </div>
+      <div class="card compat-result reveal" id="compat-result" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:24px" class="reveal">
+        <div><span class="eyebrow">Urgent now</span><h2 style="margin:0">Latest blood requests</h2></div>
+        <a class="btn btn-ghost" href="requests.html">See all requests</a>
+      </div>
+      <div class="list" id="urgent"></div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta reveal">
+        <div>
+          <h2>One donation can help save up to three lives.</h2>
+          <p>A single whole-blood donation can be split into red cells, plasma and platelets for different patients.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn-primary" href="register.html">Become a donor</a>
+            <a class="btn btn-ghost" href="learn.html">Read the donation guide</a>
+          </div>
+        </div>
+        <img src="assets/img/heart.webp" alt="One hand passing a red heart to another" loading="lazy" width="1200" height="500">
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  $("#q-group").innerHTML = options(GROUPS, "Any group");
+  $("#q-district").innerHTML = options(DISTRICTS, "Any district");
+
+  const donors = Store.donors();
+  const ready = donors.filter((u) => u.available && eligibility(u).ok).length;
+  const open = Store.requests().filter((r) => r.status === "open").length;
+  const districts = new Set(donors.map((u) => u.district)).size;
+  $("#chip-ready").textContent = `${ready} donors ready now`;
+  $("#stats").innerHTML = [
+    [donors.length, "Registered donors"], [ready, "Ready to donate now"],
+    [open, "Open blood requests"], [districts, "Districts covered"],
+  ].map(([n, t]) => `<div class="stat"><b>${n}</b><span>${t}</span></div>`).join("");
+
+  // Compatibility checker
+  const box = $("#compat-groups");
+  box.innerHTML = GROUPS.map((g, i) => `<input type="radio" name="cg" id="cg${i}" value="${g}"${g === "O+" ? " checked" : ""}><label for="cg${i}">${g}</label>`).join("");
+  const chips = (on) => GROUPS.map((g) => `<span class="chip${on.includes(g) ? " on" : ""}">${g}</span>`).join("");
+  const draw = () => {
+    const g = $("input[name=cg]:checked").value;
+    const from = CAN_RECEIVE_FROM[g], to = canGiveTo(g);
+    $("#compat-result").innerHTML = `
+      <div class="compat-row"><span class="title">${g} can receive from ${from.length} group${from.length > 1 ? "s" : ""}</span>${chips(from)}</div>
+      <div class="compat-row"><span class="title">${g} can give to ${to.length} group${to.length > 1 ? "s" : ""}</span>${chips(to)}</div>
+      <p class="muted" style="margin:0;font-size:.85rem">Red-cell compatibility only. The hospital always cross-matches before a transfusion.</p>
+      <a class="btn btn-primary" href="find.html?group=${encodeURIComponent(g)}&compatible=1">Find donors who can give to ${g}</a>`;
+  };
+  box.addEventListener("change", draw); draw();
+
+  // Urgent requests
+  const urgent = Store.requests().filter((r) => r.status === "open")
+    .sort((a, b) => a.neededBy.localeCompare(b.neededBy)).slice(0, 3);
+  $("#urgent").innerHTML = urgent.length ? urgent.map((r) => {
+    const due = dueLabel(r.neededBy);
+    return `<a class="row-card" href="requests.html#${r.id}" style="color:inherit;text-decoration:none">
+      <span class="badge">${esc(r.group)}</span>
+      <div class="grow"><h3>${r.units} unit${r.units > 1 ? "s" : ""} at ${esc(r.hospital)}</h3>
+      <div class="meta"><span>${esc(r.district)}</span><span>Posted ${timeAgo(r.createdAt)}</span></div></div>
+      <span class="pill ${due.cls}">${due.text}</span></a>`;
+  }).join("") : `<div class="empty">No open requests right now.</div>`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="about">
+<main>
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">About</span>
+      <h1>Why BloodMate exists</h1>
+      <p class="lead">When someone needs blood in Bangladesh, families still post on Facebook and call everyone they know. BloodMate makes finding a matching, eligible donor nearby quick and calm.</p>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="container grid grid-2" style="align-items:center;gap:48px">
+      <img src="assets/img/care.webp" alt="A patient receiving a blood transfusion in hospital" loading="lazy" style="border-radius:24px;aspect-ratio:4/3;object-fit:cover;width:100%">
+      <div>
+        <h2>What you can do here</h2>
+        <div class="grid" style="gap:14px;margin-top:20px">
+          <div style="display:flex;gap:14px"><span class="step-num" style="flex:none">1</span><div><b>Find donors</b><p class="muted" style="margin:0">Search by blood group and district, including every compatible group.</p></div></div>
+          <div style="display:flex;gap:14px"><span class="step-num" style="flex:none">2</span><div><b>Post emergency requests</b><p class="muted" style="margin:0">Share the hospital, bags needed and deadline so donors can respond.</p></div></div>
+          <div style="display:flex;gap:14px"><span class="step-num" style="flex:none">3</span><div><b>Manage your donor profile</b><p class="muted" style="margin:0">Set availability, log donations and see when you can give again.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm" id="status">
+    <div class="container">
+      <div class="card" style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start">
+        <span class="pill warn" style="margin-top:4px">Project status</span>
+        <div>
+          <h3>A complete front end, with a demo data layer</h3>
+          <p class="muted">Every page and feature works, but there is no server yet. Profiles, requests and donations are saved in your own browser (localStorage), so other people can't see what you enter, and the sample donors and requests are not real people.</p>
+          <p class="muted" style="margin:0">All storage goes through one small module, so connecting a real database later doesn't require rewriting the pages. The code is open on <a href="https://github.com/Armanbro007/blood">GitHub</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta">
+        <div>
+          <span class="eyebrow">Built by</span>
+          <h2>Arman Rahman</h2>
+          <p>CSE student at East Delta University, Chattogram. I started BloodMate in 2023 as my first full website and rebuilt it in 2026 with a cleaner design and working features.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn-primary" href="https://github.com/Armanbro007">GitHub</a>
+            <a class="btn btn-ghost" href="https://www.linkedin.com/in/armanspov">LinkedIn</a>
+          </div>
+        </div>
+        <img src="assets/img/heart.webp" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const b = document.createElement("button");
+  b.className = "btn btn-ghost btn-sm"; b.type = "button"; b.textContent = "Reset demo data";
+  b.style.marginTop = "14px";
+  b.onclick = () => { Store.reset(); toast("Demo data reset."); setTimeout(() => location.reload(), 600); };
+  document.querySelector("#status .card > div").append(b);
+});
+</script>
+</body>
+</html>

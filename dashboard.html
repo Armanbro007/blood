@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My dashboard · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="dashboard">
+<main>
+  <header class="page-head">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+      <div>
+        <span class="eyebrow">My dashboard</span>
+        <h1 id="hello">Hello</h1>
+        <p class="lead" id="sub"></p>
+      </div>
+      <button class="btn btn-ghost" id="logout" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <section class="section-sm">
+    <div class="container dash">
+      <div class="grid">
+        <div class="card">
+          <div class="profile-top">
+            <div class="avatar" id="avatar"></div>
+            <div><h3 style="margin:0" id="p-name"></h3><span class="muted" id="p-email" style="font-size:.88rem"></span></div>
+          </div>
+          <dl class="kv" id="p-kv"></dl>
+          <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div><b>Available to donate</b><div class="muted" style="font-size:.85rem">Turn off while you are sick or travelling.</div></div>
+            <label class="switch"><input type="checkbox" id="avail" aria-label="Available to donate"><span></span></label>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" id="edit" type="button">Edit details</button>
+            <button class="btn btn-ghost btn-sm" id="delete" type="button">Delete profile</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+          <div class="ring" id="ring"><div><div><b id="ring-n"></b><span id="ring-t"></span></div></div></div>
+          <div style="flex:1;min-width:220px">
+            <h3 id="elig-title"></h3>
+            <p class="muted" id="elig-text"></p>
+            <form id="log" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+              <div class="field" style="margin:0;flex:1;min-width:160px"><label for="log-date">I gave blood on</label><input type="date" id="log-date" required></div>
+              <button class="btn btn-primary" type="submit">Log donation</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Requests you can help with</h3>
+          <p class="muted" id="match-sub" style="font-size:.9rem"></p>
+          <div class="list" id="matches"></div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Donation history</h3>
+            <div id="history"></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">My requests</h3><a class="btn btn-ghost btn-sm" href="requests.html#new">New request</a></div>
+            <div id="mine" style="margin-top:14px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="edit-dialog">
+    <form method="dialog" id="edit-form">
+      <h3>Edit details</h3>
+      <div class="field"><label for="e-phone">Mobile number</label><input id="e-phone" name="phone" type="tel" required></div>
+      <div class="field"><label for="e-district">District</label><select id="e-district" name="district"></select></div>
+      <div class="field"><label for="e-area">Area</label><input id="e-area" name="area"></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" value="save">Save</button><button class="btn btn-ghost" value="cancel" formnovalidate>Cancel</button></div>
+    </form>
+  </dialog>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (!Store.me()) { location.replace("login.html"); return; }
+  if (new URLSearchParams(location.search).get("welcome")) { toast("Welcome! Your donor profile is live."); history.replaceState(null, "", "dashboard.html"); }
+  $("#log-date").max = new Date().toISOString().slice(0, 10);
+  $("#e-district").innerHTML = options(DISTRICTS);
+
+  function render() {
+    const me = Store.me();
+    const el = eligibility(me);
+    $("#hello").textContent = `Hello, ${me.name.split(" ")[0]}`;
+    $("#sub").textContent = me.available ? "Your profile is visible to people searching for donors." : "Your profile is hidden from searches while you are unavailable.";
+    $("#avatar").textContent = initials(me.name);
+    $("#p-name").textContent = me.name;
+    $("#p-email").textContent = me.email;
+    $("#p-kv").innerHTML = [
+      ["Blood group", `<span class="pill hot">${esc(me.group)}</span>`], ["District", esc(me.district)], ["Area", esc(me.area || "–")],
+      ["Mobile", esc(me.phone)], ["Can give to", canGiveTo(me.group).join(", ")],
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+    $("#avail").checked = !!me.available;
+
+    $("#ring").style.setProperty("--p", el.pct);
+    if (el.ok) {
+      $("#ring-n").textContent = "✓"; $("#ring-t").textContent = "ready";
+      $("#elig-title").textContent = "You can donate now";
+      $("#elig-text").textContent = me.lastDonated ? `It has been over four months since your last donation on ${fmtDate(me.lastDonated)}.` : "You haven't logged a donation yet. Thank you for being ready to help.";
+    } else {
+      $("#ring-n").textContent = el.daysLeft; $("#ring-t").textContent = el.daysLeft === 1 ? "day left" : "days left";
+      $("#elig-title").textContent = `Next donation from ${fmtDate(el.next)}`;
+      $("#elig-text").textContent = `You gave blood on ${fmtDate(me.lastDonated)}. Your body needs about four months to fully rebuild its red cells.`;
+    }
+
+    const history = [...(me.donations || [])].sort().reverse();
+    $("#history").innerHTML = history.length
+      ? `<p class="muted" style="font-size:.9rem">${history.length} donation${history.length > 1 ? "s" : ""} logged. Thank you.</p><ul style="padding-left:18px;margin:0">${history.map((d) => `<li>${fmtDate(d)}</li>`).join("")}</ul>`
+      : `<p class="muted">No donations logged yet. Log one above after you give blood.</p>`;
+
+    const mine = Store.requests().filter((r) => r.ownerId === me.id);
+    $("#mine").innerHTML = mine.length ? mine.map((r) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)">
+        <span class="badge" style="min-width:38px;height:38px;font-size:.9rem">${esc(r.group)}</span>
+        <div style="flex:1;min-width:0"><b style="font-size:.92rem">${esc(r.hospital)}</b><div class="muted" style="font-size:.82rem">${r.status === "open" ? dueLabel(r.neededBy).text : "Fulfilled"}</div></div>
+        ${r.status === "open" ? `<button class="btn btn-ghost btn-sm" data-done="${r.id}">Fulfilled</button>` : ""}
+        <button class="btn btn-ghost btn-sm" data-del="${r.id}" aria-label="Delete request">✕</button>
+      </div>`).join("") : `<p class="muted">You haven't posted a request.</p>`;
+
+    const matches = Store.requests().filter((r) => r.status === "open" && r.ownerId !== me.id && CAN_RECEIVE_FROM[r.group].includes(me.group))
+      .sort((a, b) => (b.district === me.district) - (a.district === me.district) || a.neededBy.localeCompare(b.neededBy)).slice(0, 4);
+    $("#match-sub").textContent = `Open requests your ${me.group} blood is compatible with, nearest first.`;
+    $("#matches").innerHTML = matches.length ? matches.map((r) => {
+      const due = dueLabel(r.neededBy);
+      return `<a class="row-card" href="requests.html#${r.id}" style="color:inherit;text-decoration:none;padding:12px 14px">
+        <span class="badge" style="min-width:38px;height:38px;font-size:.9rem">${esc(r.group)}</span>
+        <div class="grow"><h3 style="font-size:.95rem">${esc(r.hospital)}</h3><div class="meta"><span>${esc(r.district)}</span><span>${r.units} unit${r.units > 1 ? "s" : ""}</span></div></div>
+        <span class="pill ${due.cls}">${due.text}</span></a>`;
+    }).join("") : `<div class="empty" style="padding:24px">No open requests match your blood group right now.</div>`;
+  }
+
+  $("#avail").addEventListener("change", (e) => { Store.updateMe({ available: e.target.checked }); render(); toast(e.target.checked ? "You're visible to people searching." : "You're hidden from searches."); });
+  $("#log").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const d = $("#log-date").value; if (!d) return;
+    const me = Store.me();
+    const donations = [...new Set([...(me.donations || []), d])];
+    const latest = donations.sort().at(-1);
+    Store.updateMe({ donations, lastDonated: latest });
+    $("#log-date").value = ""; render(); toast("Donation logged. Thank you for saving lives!");
+  });
+  $("#mine").addEventListener("click", (e) => {
+    const done = e.target.closest("[data-done]")?.dataset.done, del = e.target.closest("[data-del]")?.dataset.del;
+    if (done) { Store.setRequest(done, { status: "fulfilled" }); toast("Marked as fulfilled."); }
+    if (del) { Store.removeRequest(del); toast("Request deleted."); }
+    render();
+  });
+  $("#logout").onclick = () => { Store.logout(); location.href = "index.html"; };
+  $("#delete").onclick = () => {
+    const d = $("#contact-dialog") || document.createElement("dialog");
+    d.id = "contact-dialog"; document.body.append(d);
+    d.innerHTML = `<h3>Delete your profile?</h3><p class="muted">This removes your donor profile and your requests from this browser. It can't be undone.</p>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" id="yes" type="button">Delete profile</button><button class="btn btn-ghost" type="button" onclick="this.closest('dialog').close()">Keep it</button></div>`;
+    d.showModal();
+    $("#yes", d).onclick = () => { Store.deleteMe(); location.href = "index.html"; };
+  };
+  $("#edit").onclick = () => {
+    const me = Store.me();
+    $("#e-phone").value = me.phone; $("#e-district").value = me.district; $("#e-area").value = me.area || "";
+    $("#edit-dialog").showModal();
+  };
+  $("#edit-dialog").addEventListener("close", () => {
+    if ($("#edit-dialog").returnValue !== "save") return;
+    Store.updateMe({ phone: $("#e-phone").value.trim(), district: $("#e-district").value, area: $("#e-area").value.trim() });
+    render(); toast("Details saved.");
+  });
+  render();
+});
+</script>
+</body>
+</html>

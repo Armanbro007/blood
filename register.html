@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Become a donor · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="register">
+<main>
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">Become a donor</span>
+      <h1>Register in about a minute</h1>
+      <p class="lead">Your details help patients nearby find a matching donor when they need one most.</p>
+    </div>
+  </header>
+
+  <section class="section-sm">
+    <div class="container split">
+      <form class="card" id="reg" novalidate>
+        <h3 style="margin-bottom:20px">Your blood group</h3>
+        <div class="groups" id="groups" role="radiogroup" aria-label="Blood group" style="margin-bottom:6px"></div>
+        <p class="error" data-for="group"></p>
+
+        <h3 style="margin:16px 0 16px">About you</h3>
+        <div class="form-grid">
+          <div class="field"><label for="name">Full name</label><input id="name" name="name" autocomplete="name" required><p class="error" data-for="name"></p></div>
+          <div class="field"><label for="phone">Mobile number</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" required><p class="error" data-for="phone"></p></div>
+          <div class="field"><label for="age">Age</label><input id="age" name="age" type="number" inputmode="numeric" min="16" max="80" required><p class="error" data-for="age"></p></div>
+          <div class="field"><label for="weight">Weight (kg)</label><input id="weight" name="weight" type="number" inputmode="numeric" min="30" max="200" required><p class="error" data-for="weight"></p></div>
+          <div class="field"><label for="district">District</label><select id="district" name="district" required></select><p class="error" data-for="district"></p></div>
+          <div class="field"><label for="area">Area <span class="muted">(optional)</span></label><input id="area" name="area" placeholder="e.g. Agrabad"></div>
+          <div class="field full"><label for="last">Last time you gave blood</label><input id="last" name="lastDonated" type="date"><span class="hint">Leave empty if you have never donated.</span><p class="error" data-for="lastDonated"></p></div>
+        </div>
+
+        <h3 style="margin:8px 0 16px">Account</h3>
+        <div class="form-grid">
+          <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><p class="error" data-for="email"></p></div>
+          <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required><span class="hint">At least 8 characters.</span><p class="error" data-for="password"></p></div>
+        </div>
+        <label class="checkbox" style="margin:4px 0 10px"><input type="checkbox" name="available" checked> I'm available to donate and happy to be contacted</label>
+        <label class="checkbox" style="margin-bottom:20px"><input type="checkbox" name="consent" required> My details are correct and I'm in good health</label>
+        <p class="error" data-for="consent"></p>
+        <button class="btn btn-primary btn-block" type="submit">Create donor profile</button>
+        <p class="muted center" style="margin:14px 0 0;font-size:.9rem">Already registered? <a href="login.html">Sign in</a></p>
+      </form>
+
+      <aside class="card aside">
+        <h3>Can I donate?</h3>
+        <p class="muted">Most blood banks in Bangladesh ask that you:</p>
+        <ul>
+          <li>are 18 to 60 years old</li>
+          <li>weigh at least 50 kg (some accept 45 kg)</li>
+          <li>waited about 4 months since your last whole-blood donation</li>
+          <li>feel well, with no fever, cold or recent infection</li>
+        </ul>
+        <p class="muted" style="margin-top:14px;font-size:.88rem">The blood bank always does its own health check before you donate. <a href="learn.html">Read the full guide</a>.</p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (Store.me()) { location.replace("dashboard.html"); return; }
+  $("#groups").innerHTML = GROUPS.map((g, i) => `<input type="radio" name="group" id="g${i}" value="${g}"><label for="g${i}">${g}</label>`).join("");
+  $("#district").innerHTML = options(DISTRICTS, "Choose district");
+  $("#last").max = new Date().toISOString().slice(0, 10);
+
+  const form = $("#reg");
+  const setErr = (k, msg) => {
+    const p = $(`[data-for="${k}"]`); if (p) p.textContent = msg || "";
+    const input = form.elements[k];
+    if (input && input.setAttribute) input.setAttribute("aria-invalid", msg ? "true" : "false");
+  };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(form));
+    const errs = {};
+    if (!f.group) errs.group = "Pick your blood group.";
+    if (!f.name || f.name.trim().length < 3) errs.name = "Enter your full name.";
+    if (!/^(\+?88)?01[3-9]\d{8}$/.test((f.phone || "").replace(/[\s-]/g, ""))) errs.phone = "Enter a Bangladeshi mobile number, like 017XXXXXXXX.";
+    const age = +f.age, weight = +f.weight;
+    if (!age) errs.age = "Enter your age.";
+    else if (age < 18 || age > 60) errs.age = "Donors usually need to be 18 to 60.";
+    if (!weight) errs.weight = "Enter your weight.";
+    else if (weight < 45) errs.weight = "Donors usually need to weigh at least 45 to 50 kg.";
+    if (!f.district) errs.district = "Choose your district.";
+    if (f.lastDonated && new Date(f.lastDonated) > new Date()) errs.lastDonated = "This date is in the future.";
+    if (!/^\S+@\S+\.\S+$/.test(f.email || "")) errs.email = "Enter a valid email.";
+    else if (Store.byEmail(f.email)) errs.email = "This email already has a profile. Sign in instead.";
+    if (!f.password || f.password.length < 8) errs.password = "Use at least 8 characters.";
+    if (!f.consent) errs.consent = "Please confirm before continuing.";
+
+    ["group", "name", "phone", "age", "weight", "district", "lastDonated", "email", "password", "consent"].forEach((k) => setErr(k, errs[k]));
+    const first = Object.keys(errs)[0];
+    if (first) { (form.elements[first]?.focus ? form.elements[first] : form.querySelector("input"))?.focus?.(); return; }
+
+    Store.addUser({
+      name: f.name.trim(), phone: f.phone.replace(/[\s-]/g, ""), age, weight,
+      group: f.group, district: f.district, area: (f.area || "").trim(),
+      lastDonated: f.lastDonated || "", available: !!f.available,
+      email: f.email.toLowerCase().trim(), pass: await hash(f.password), donations: f.lastDonated ? [f.lastDonated] : [],
+    });
+    location.href = "dashboard.html?welcome=1";
+  });
+});
+</script>
+</body>
+</html>

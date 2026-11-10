@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Find donors · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="find">
+<main>
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">Find donors</span>
+      <h1>Search by blood group and district</h1>
+      <p class="lead">Donors marked "Can donate now" are available and have passed the four-month gap since their last donation.</p>
+    </div>
+  </header>
+
+  <section class="section-sm">
+    <div class="container">
+      <form class="toolbar" id="filters">
+        <div class="field"><label for="f-group">Blood group</label><select id="f-group" name="group"></select></div>
+        <div class="field"><label for="f-district">District</label><select id="f-district" name="district"></select></div>
+        <div class="field"><label for="f-text">Area or name</label><input id="f-text" name="q" placeholder="e.g. Agrabad"></div>
+        <div class="field" style="flex:0 0 auto;min-width:0">
+          <span class="label">Options</span>
+          <label class="checkbox" style="min-height:46px"><input type="checkbox" id="f-compat" name="compatible" value="1"> Include compatible groups</label>
+        </div>
+        <div class="field" style="flex:0 0 auto;min-width:0">
+          <span class="label">&nbsp;</span>
+          <label class="checkbox" style="min-height:46px"><input type="checkbox" id="f-ready" name="ready" value="1"> Ready now only</label>
+        </div>
+      </form>
+      <p class="count" id="count" aria-live="polite"></p>
+      <div class="list" id="results"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = $("#filters");
+  $("#f-group").innerHTML = options(GROUPS, "Any group");
+  $("#f-district").innerHTML = options(DISTRICTS, "Any district");
+
+  // Fill filters from the URL (links from the home page).
+  const params = new URLSearchParams(location.search);
+  $("#f-group").value = params.get("group") || "";
+  $("#f-district").value = params.get("district") || "";
+  $("#f-text").value = params.get("q") || "";
+  $("#f-compat").checked = params.get("compatible") === "1";
+  $("#f-ready").checked = params.get("ready") === "1";
+
+  function run() {
+    const g = $("#f-group").value, d = $("#f-district").value;
+    const q = $("#f-text").value.trim().toLowerCase();
+    const compat = $("#f-compat").checked, ready = $("#f-ready").checked;
+    const wanted = !g ? null : compat ? CAN_RECEIVE_FROM[g] : [g];
+    const me = Store.me();
+
+    const list = Store.donors().filter((u) =>
+      (!me || u.id !== me.id) &&
+      (!wanted || wanted.includes(u.group)) &&
+      (!d || u.district === d) &&
+      (!q || (u.name + " " + (u.area || "")).toLowerCase().includes(q)) &&
+      (!ready || (u.available && eligibility(u).ok))
+    ).sort((a, b) => {
+      const s = (u) => (u.available ? 0 : 2) + (eligibility(u).ok ? 0 : 1);
+      return s(a) - s(b) || (a.group === g ? -1 : 0) - (b.group === g ? -1 : 0);
+    });
+
+    const readyN = list.filter((u) => u.available && eligibility(u).ok).length;
+    $("#count").textContent = `${list.length} donor${list.length === 1 ? "" : "s"} found, ${readyN} ready now`
+      + (g && compat ? ` (groups that can give to ${g}: ${wanted.join(", ")})` : "");
+    $("#results").innerHTML = list.length ? list.map((u) => donorCard(u)).join("")
+      : `<div class="empty"><h3>No donors match yet</h3><p>Try another district, tick "Include compatible groups", or <a href="requests.html">post a blood request</a> so donors can find you.</p></div>`;
+
+    const next = new URLSearchParams(new FormData(form));
+    for (const [k, v] of [...next]) if (!v) next.delete(k);
+    history.replaceState(null, "", next.toString() ? "?" + next : location.pathname);
+  }
+
+  form.addEventListener("input", run);
+  form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
+  $("#results").addEventListener("click", (e) => {
+    const id = e.target.closest("[data-contact]")?.dataset.contact;
+    if (!id) return;
+    const u = Store.donors().find((x) => x.id === id);
+    if (u) contactDialog(u.name, u.phone);
+  });
+  run();
+});
+</script>
+</body>
+</html>
