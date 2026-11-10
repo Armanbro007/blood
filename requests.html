@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blood requests · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="requests">
+<main>
+  <header class="page-head">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+      <div>
+        <span class="eyebrow">Emergency requests</span>
+        <h1>Patients who need blood</h1>
+        <p class="lead">Post a request so compatible donors nearby can see it, or help someone who is waiting.</p>
+      </div>
+      <a class="btn btn-primary" href="#new">Post a request</a>
+    </div>
+  </header>
+
+  <section class="section-sm">
+    <div class="container split">
+      <div>
+        <form class="toolbar" id="filters">
+          <div class="field"><label for="f-group">Blood group</label><select id="f-group"></select></div>
+          <div class="field"><label for="f-district">District</label><select id="f-district"></select></div>
+          <div class="field" style="flex:0 0 auto;min-width:0"><span class="label">&nbsp;</span>
+            <label class="checkbox" style="min-height:46px"><input type="checkbox" id="f-mine"> I can donate to these</label></div>
+        </form>
+        <p class="count" id="count" aria-live="polite"></p>
+        <div class="list" id="list"></div>
+      </div>
+
+      <form class="card aside" id="new" novalidate>
+        <h3>Post a blood request</h3>
+        <p class="muted" style="font-size:.9rem">Shown to everyone searching. Include the hospital so donors can go directly.</p>
+        <div class="field"><span class="label">Patient's blood group</span><div class="groups" id="r-groups" role="radiogroup" aria-label="Patient's blood group"></div><p class="error" data-for="group"></p></div>
+        <div class="form-grid">
+          <div class="field"><label for="r-units">Bags needed</label><input id="r-units" name="units" type="number" min="1" max="10" value="1"></div>
+          <div class="field"><label for="r-date">Needed by</label><input id="r-date" name="neededBy" type="date"><p class="error" data-for="neededBy"></p></div>
+        </div>
+        <div class="field"><label for="r-hospital">Hospital</label><input id="r-hospital" name="hospital" placeholder="e.g. Chittagong Medical College Hospital"><p class="error" data-for="hospital"></p></div>
+        <div class="field"><label for="r-district">District</label><select id="r-district" name="district"></select><p class="error" data-for="district"></p></div>
+        <div class="form-grid">
+          <div class="field"><label for="r-name">Contact name</label><input id="r-name" name="contactName" autocomplete="name"><p class="error" data-for="contactName"></p></div>
+          <div class="field"><label for="r-phone">Contact mobile</label><input id="r-phone" name="phone" type="tel" autocomplete="tel" placeholder="01XXXXXXXXX"><p class="error" data-for="phone"></p></div>
+        </div>
+        <div class="field"><label for="r-note">Note <span class="muted">(optional)</span></label><textarea id="r-note" name="note" maxlength="280" placeholder="Reason, ward or bed number, best time to call"></textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">Post request</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const me = Store.me();
+  $("#f-group").innerHTML = options(GROUPS, "Any group");
+  $("#f-district").innerHTML = options(DISTRICTS, "Any district");
+  $("#r-district").innerHTML = options(DISTRICTS, "Choose district");
+  $("#r-groups").innerHTML = GROUPS.map((g, i) => `<input type="radio" name="group" id="rg${i}" value="${g}"><label for="rg${i}">${g}</label>`).join("");
+  $("#r-date").min = new Date().toISOString().slice(0, 10);
+  $("#r-date").value = new Date().toISOString().slice(0, 10);
+  if (me) { $("#r-name").value = me.name; $("#r-phone").value = me.phone; $("#r-district").value = me.district; $("#f-mine").checked = true; }
+  else $("#f-mine").closest(".field").hidden = true;
+
+  function run() {
+    const g = $("#f-group").value, d = $("#f-district").value, mine = me && $("#f-mine").checked;
+    const list = Store.requests().filter((r) =>
+      (!g || r.group === g) && (!d || r.district === d) && (!mine || CAN_RECEIVE_FROM[r.group].includes(me.group))
+    ).sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || a.neededBy.localeCompare(b.neededBy));
+    const open = list.filter((r) => r.status === "open").length;
+    $("#count").textContent = `${open} open request${open === 1 ? "" : "s"}` + (mine ? ` your ${me.group} blood can help` : "");
+    $("#list").innerHTML = list.length ? list.map((r) => {
+      const due = r.status === "open" ? dueLabel(r.neededBy) : { text: "Fulfilled", cls: "ok" };
+      const action = r.status !== "open" ? "" : r.sample
+        ? `<button class="btn btn-ghost btn-sm" disabled title="Sample request, no contact details">Sample</button>`
+        : `<button class="btn btn-primary btn-sm" data-help="${r.id}">I can help</button>`;
+      return `<article class="row-card" id="${r.id}" style="${r.status !== "open" ? "opacity:.6" : ""}">
+        <span class="badge">${esc(r.group)}</span>
+        <div class="grow"><h3>${r.units} bag${r.units > 1 ? "s" : ""} at ${esc(r.hospital)}</h3>
+          <div class="meta"><span>${esc(r.district)}</span><span>Needed by ${fmtDate(r.neededBy)}</span><span>Posted ${timeAgo(r.createdAt)}</span></div>
+          ${r.note ? `<p style="margin:6px 0 0;font-size:.9rem">${esc(r.note)}</p>` : ""}</div>
+        <span class="pill ${due.cls}">${due.text}</span>
+        <div class="actions">${action}</div></article>`;
+    }).join("") : `<div class="empty"><h3>No requests here</h3><p>Nothing matches these filters right now.</p></div>`;
+    if (location.hash.length > 1) document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "center" });
+  }
+
+  $("#filters").addEventListener("input", run);
+  $("#list").addEventListener("click", (e) => {
+    const id = e.target.closest("[data-help]")?.dataset.help; if (!id) return;
+    const r = Store.requests().find((x) => x.id === id);
+    if (r) contactDialog(r.contactName, r.phone, `Patient needs ${r.group} blood at ${esc(r.hospital)}. Call first to confirm the request is still open.`);
+  });
+
+  const form = $("#new");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(form));
+    const errs = {};
+    if (!f.group) errs.group = "Pick the patient's blood group.";
+    if (!f.neededBy) errs.neededBy = "Pick a date.";
+    if (!f.hospital || f.hospital.trim().length < 3) errs.hospital = "Enter the hospital name.";
+    if (!f.district) errs.district = "Choose a district.";
+    if (!f.contactName || !f.contactName.trim()) errs.contactName = "Enter a contact name.";
+    if (!/^(\+?88)?01[3-9]\d{8}$/.test((f.phone || "").replace(/[\s-]/g, ""))) errs.phone = "Enter a valid mobile number.";
+    $$(".error", form).forEach((p) => (p.textContent = errs[p.dataset.for] || ""));
+    if (Object.keys(errs).length) return;
+    const r = Store.addRequest({
+      group: f.group, units: Math.max(1, Math.min(10, +f.units || 1)), neededBy: f.neededBy,
+      hospital: f.hospital.trim(), district: f.district, contactName: f.contactName.trim(),
+      phone: f.phone.replace(/[\s-]/g, ""), note: (f.note || "").trim(), ownerId: me ? me.id : null,
+    });
+    form.reset(); $("#r-date").value = new Date().toISOString().slice(0, 10);
+    if (me) { $("#r-name").value = me.name; $("#r-phone").value = me.phone; $("#r-district").value = me.district; }
+    $("#f-group").value = ""; $("#f-district").value = ""; if (me) $("#f-mine").checked = false;
+    run(); toast("Request posted. Compatible donors can now see it.");
+    document.getElementById(r.id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  run();
+});
+</script>
+</body>
+</html>

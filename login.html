@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · BloodMate</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body data-page="login">
+<main class="auth">
+  <div class="auth-art">
+    <img src="assets/img/care.webp" alt="" aria-hidden="true">
+    <span class="eyebrow" style="color:#fff">Welcome back</span>
+    <h2>Every donor counts.</h2>
+    <p style="max-width:40ch;opacity:.85">Sign in to update your availability, log a donation and see when you can give again.</p>
+  </div>
+  <div class="auth-form">
+    <form class="card" id="login" novalidate>
+      <h2 style="font-size:1.6rem">Sign in</h2>
+      <p class="muted">Use the email and password you registered with.</p>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+      <p class="error" id="err" role="alert"></p>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+      <p class="muted center" style="margin:16px 0 0;font-size:.9rem">New here? <a href="register.html">Become a donor</a></p>
+      <p class="muted center" style="margin:8px 0 0;font-size:.82rem">Forgot your password? In this demo, accounts live in your browser, so just register again with another email.</p>
+    </form>
+  </div>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (Store.me()) { location.replace("dashboard.html"); return; }
+  $("#login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#email").value, pw = $("#password").value;
+    const u = Store.byEmail(email);
+    if (!u || u.pass !== await hash(pw)) {
+      $("#err").textContent = "That email and password don't match a profile on this device.";
+      return;
+    }
+    Store.login(u.id);
+    location.href = "dashboard.html";
+  });
+});
+</script>
+</body>
+</html>
